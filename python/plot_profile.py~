@@ -1,0 +1,51 @@
+import matplotlib.pyplot as plt
+from python.datasets.wrf_dataset import WRFDataset
+from collections import OrderedDict
+import datetime as dt
+
+
+def LetterChanges(x):
+    # code goes here
+    import string
+    xnew = x 
+    xnew = list(xnew)
+     
+    
+   
+    for l in range(len(x)):
+        
+        if x[l] == " ":
+           xnew[l]="_"
+    xnew = "".join(xnew) # Change the list back to string, by using 'join' method of strings.    
+    return xnew
+
+
+
+def plot_profile( line_profiles, scatter_profiles ,outdir,title=""):
+    color=["blue","red","lime","grey","palevioletred"]
+    color1=["black","pink","green","brown","magenta"]
+    if line_profiles is not None:
+        i=-1
+        for label in line_profiles.values.iterkeys():
+            profile = line_profiles.values[label]
+            i=i+1
+            plt.plot( profile, line_profiles.heights, label=label,c=color[i])
+            
+            
+    if scatter_profiles is not None:
+        i=-1
+        for label in scatter_profiles.values.iterkeys():
+            profile = scatter_profiles.values[label]
+            i=i+1
+            plt.scatter( profile, scatter_profiles.heights, label=label,c=color1[i])
+
+    plt.title(title)
+    plt.legend(loc='best')
+    
+    # padding outfile name
+    label1=LetterChanges(label)
+    
+    if outdir is not None:
+        plt.savefig(outdir+label1+'.png')
+    plt.show()
+

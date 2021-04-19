@@ -1,0 +1,9 @@
+input="This has a backslash \\"
+output=$(echo "$input" | sed 's,\\,/,g')
+echo "$output"
+cat datasets/wyoming_sonde_dataset.py | sed 's,\\,/,g' > output
+mv output datasets/wyoming_sonde_dataset.py
+cat datasets/ecmwf_dataset.py | sed 's,\\,/,g' > output
+mv output datasets/ecmwf_dataset.py
+cat datasets/stations_list.py |  sed 's,\\,/,g' > output
+mv output datasets/stations_list.py

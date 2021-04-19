@@ -1,0 +1,13 @@
+
+
+WRF data input:
+    E:\meteo\urban-wrf\wrfout
+
+
+Surface data download from:
+    https://ims.data.gov.il/ims
+
+    Needed fields: Temp, RH, ws, wdir
+
+plot outputs to:
+    D:\Dev\Machon\Urban\python
