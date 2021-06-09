@@ -1,4 +1,11 @@
 import numpy as np
+import datasets.util as util
+
+
+def angdiff(th1, th2):
+    d = th1 - th2
+    d = np.mod(d + 180, 360) - 180
+    return d
 
 def get_delta_series(model, surface, param):
 
@@ -6,19 +13,21 @@ def get_delta_series(model, surface, param):
     surface_values = surface.values[param]  # type: nparray
 
     if model_values is None or surface_values is None:
-        return None
+        return (None, None, None, None)
 
-    delta = np.zeros(len(model.xs))
+
+    xs = model.xs
+
+    delta = np.zeros(len(xs))
     delta[:] = np.nan
-    for ix, xtime in enumerate(model.xs):
+    for ix, xtime in enumerate(xs):
 
         if np.isnan(model_values[ix]) or np.isnan(surface_values[ix]):
-            delta[ix] = 0  # delta = 0 , do not increase number of events
             continue
         if param == "wdir_deg":
             su = surface.values["u10_ms"][ix]
             sv = surface.values["v10_ms"][ix]
-            if (su ** 2 + sv ** 2) >= 1:
+            if (su ** 2 + sv ** 2) >= 0.25:
                 mu = model.values["u10_ms"][ix]
                 mv = model.values["v10_ms"][ix]
                 ds = util.to_degrees(su, sv)
@@ -30,10 +39,10 @@ def get_delta_series(model, surface, param):
         elif param == "wvel_ms":
             su = surface.values["u10_ms"][ix]
             sv = surface.values["v10_ms"][ix]
-            if (su ** 2 + sv ** 2) >= 1:
+            if (su ** 2 + sv ** 2) >= 0.25:
                 delta[ix] = model_values[ix] - surface_values[ix]
         else:
             delta[ix] = model_values[ix] - surface_values[ix]
 
-        if np.isnan(delta[ix]):
-            continue
+
+    return (xs, delta, surface_values, model_values)

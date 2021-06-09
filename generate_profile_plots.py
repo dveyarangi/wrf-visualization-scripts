@@ -32,7 +32,7 @@ dates = [
     (dt.datetime(2018,  2, 15, 18, 00), [ 6, 18, 30, 42 ]),
     (dt.datetime(2018,  4, 30, 18, 00), [ 6, 18, 30, 42 ]),
 
-    (dt.datetime(2018, 4, 29, 18, 00), [ 6, 18, 30, 42, 54, 66])
+#    (dt.datetime(2018, 4, 29, 18, 00), [ 6, 18, 30, 42, 54, 66])
 
     #dt.datetime(2020, 9, 13, 18,00),
 #dt.datetime(2020, 9, 14, 18,00),
@@ -50,7 +50,7 @@ param_ranges={
  }
 
 base_wrf_dir = r"E:\meteo\urban-wrf\wrfout\\"
-configs = ['bulk_sst']
+configs = {'bulk_sst':'bulk', 'slucm':'slucm','bulk_ysu':'bulk_ysu'}
 db = ProfileDatabase()
 
 all_datasets = {}
@@ -111,21 +111,21 @@ def create_plots( date, forecast_offset, domain):
     all_values = {}
 
 
-    for key in all_profiles:
+    for config in configs:
 
-        (heights, profiles, curr_date) = all_profiles[key]
-        sonde = ref_profiles[curr_date]
-        sonde_values = all_values['OBS'] = {}
-        for param in params:
+        ds_label = f"WRF {domain} {config}"
+        for key in all_profiles:
+            (heights, profiles, curr_date) = all_profiles[key]
+            sonde = ref_profiles[curr_date]
+            sonde_values = all_values['OBS'] = {}
+            for param in params:
 
-            sonde_values[param] = np.zeros((len(heights)))
-            if sonde_values is None:
-                continue
+                sonde_values[param] = np.zeros((len(heights)))
+                if sonde_values is None:
+                    continue
 
-            for ix in range(len(heights)):
-                sonde_values[param][ix] = sonde.values[param][ix]
-
-        for ds_label in iter(profiles):
+                for ix in range(len(heights)):
+                    sonde_values[param][ix] = sonde.values[param][ix]
 
             values = all_values[f'+{key}h'] = {}
             for param in params:
@@ -142,12 +142,11 @@ def create_plots( date, forecast_offset, domain):
                 for ix in range(len(heights)):
                     values[param][ix] = model_values[ix]
 
-
     # completed mean bias ame rmse calculations
     # print sonde_mean["wdir_deg"]
 
 
-    draw_array(config, heights, all_values, start_date, forecast_offset, "Values")
+        draw_array(configs[config], heights, all_values, start_date, forecast_offset, "Values")
 
     ########################################
 
@@ -172,7 +171,7 @@ def draw_array(config, heights, values, start_date, forecast_offset, values_tag)
 
         plot_outdir = f"{outdir}/{start_date.strftime('%Y%m%d%H')}/{domain}/{forecast_offset:02d}/{values_tag}/"
         os.makedirs(plot_outdir, exist_ok=True)
-        prefix = f'vertical_profile_{config}_{values_tag}_{start_date.strftime("%Y%m%d%H")}Z+{forecast_offset:02d}_{domain}_{draw_param}'
+        prefix = f'vertical_profile_{config}_{values_tag}_{start_date.strftime("%Y%m%d%H")}+{forecast_offset:02d}_{domain}_{draw_param}'
 
         title = f"WRF {domain} {config} {draw_param} {start_date.strftime('%Y%m%d %H')}Z+{forecast_offset:02d}h, {station.wmoid}"
 

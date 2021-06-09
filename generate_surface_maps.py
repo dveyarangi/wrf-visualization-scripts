@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import matplotlib.patches as patches
 import matplotlib.pylab as pl
 import datetime as dt
 from datasets.wrf_dataset import WRFDataset
@@ -48,7 +49,11 @@ def truncate_landuse(landuse):
     color_list = []
     labels = []
     for idx, value in enumerate(unique):
-        (label, color) = LANDUSE_LABELS[round(value)-1]
+
+        lu_idx = round(value)-1
+        if lu_idx >= len(LANDUSE_LABELS) or lu_idx < 0:
+            continue
+        (label, color) = LANDUSE_LABELS[lu_idx]
         color_list.append(color)
 
         truncated_landuse[np.where(landuse == value)] = idx+1
@@ -137,7 +142,7 @@ domain_stations = {
 }
 
 #
-domains = [ "d03","d04"]
+domains = [ "d04"]
 #dt.datetime(2013, 7, 12, 18, 00), dt.datetime(2013, 7, 14, 18, 00)
 time_groups = [
             (dt.datetime(2013, 7, 12, 18, 00), dt.datetime(2013, 7, 14, 18, 00)), \
@@ -145,7 +150,7 @@ time_groups = [
             (dt.datetime(2017, 9, 26, 18, 00),dt.datetime(2017, 9, 28, 18, 00)), \
             (dt.datetime(2017, 11, 25, 18, 00),dt.datetime(2017, 11, 27, 18, 00)), \
             (dt.datetime(2018, 2, 15, 18, 00),dt.datetime(2018, 2, 17, 18, 00)), \
-            (dt.datetime(2018,  4, 29, 18, 00), dt.datetime(2018, 5, 2, 18, 00)), \
+            (dt.datetime(2018,  4, 30, 18, 00), dt.datetime(2018, 5, 2, 18, 00)), \
             (dt.datetime(2020, 9, 13, 18, 00), dt.datetime(2020, 9, 16, 00, 00)), \
             (dt.datetime(2020, 9, 14, 18, 00), dt.datetime(2020, 9, 17, 00, 00)), \
             (dt.datetime(2020, 9, 15, 18, 00), dt.datetime(2020, 9, 18, 00, 00)), \
@@ -154,12 +159,12 @@ time_groups = [
     ]
 
 
-domain_pruning = { 'd03': (8,11), 'd04': (3, 5)}
+domain_pruning = { 'd03': (8,8), 'd04': (5, 5)}
 domain_cropping = { 'd03':False, 'd04':True } # crop AOI to include just the stations
-domain_wind_scaling = { 'd03':0.0005, 'd04':0.003 }
+domain_wind_scaling = { 'd03':100, 'd04':100 }
 
 tags = ['config1']
-configs = ['bulk_sst'] #
+configs = {'bulk_sst':'bulk', 'slucm':'slucm', 'bulk_ysu':'bulk_ysu'} #
 #configs = ['bulk_sst'] #
 #configs = ['bulk_d01_input_only'] # 'bulk_nofeedback'
 
@@ -173,7 +178,7 @@ for tag in tags:
     domain_datasets = {}
     for domain in domains:
         for config in configs:
-            domain_datasets [f"WRF {domain} {config}"] = WRFDataset(f"{base_wrf_dir}\\{config}", domain)
+            domain_datasets [f"WRF {domain} {configs[config]}"] = WRFDataset(f"{base_wrf_dir}\\{config}", domain)
     tag_datasets[tag] = domain_datasets
 
 all_datasets = tag_datasets[tag]
@@ -221,7 +226,7 @@ for domain in domains:
         latmin = latmin - 0.05
         latmax = latmax - 0.05
     else:
-        dataset = all_datasets[f"WRF {domain} {configs[0]}"]
+        dataset = all_datasets[f"WRF {domain} {configs[config]}"]
         (latmin,lonmin,latmax,lonmax) = dataset.get_domain_coverage()
 
     m = Basemap(projection='merc', llcrnrlat=latmin, urcrnrlat=latmax, \
@@ -240,7 +245,8 @@ for domain in domains:
         # calculating value ranges for plots
         ranges = {'w10mag': (10000, -10000), 't2m': (10000, -10000), 'rh2m': (10000, -10000)}
 
-        for config in configs:
+        for cfg in configs:
+            config = configs[cfg]
             dataset = all_datasets[f"WRF {domain} {config}"]
 
             for curr_time in ftimes:
@@ -282,7 +288,8 @@ for domain in domains:
 
         ##########################################
         # rendering maps
-        for config in configs:
+        for cfg in configs:
+            config = configs[cfg]
             dataset = all_datasets[f"WRF {domain} {config}"]
 
             outdir = f'{baseOutDir}/{config}/{start_time.strftime("%Y%m%d%H")}/{domain}'
@@ -391,24 +398,26 @@ for domain in domains:
                 m.contourf( xlon, xlat,bathymetry, 10, cmap='terrain', vmin=-150, vmax=2000, latlon=True)
                 (p1, p2) = domain_pruning[domain]
 
-                w_mag = np.sqrt(ugrid**2+vgrid**2)
 
-                cdict = {'red':   [(0.0,  0.0, 0.0),
-                                   (1.0,  0.75, 0.35)],
 
-                         'green': [(0.0,  0.0, 0.0),
-                                   (1.00, 0.35, 0.35)],
-
-                         'blue':  [(0.0,  0.0, 0.0),
-                                   (1.0,  0.0, 0.0)]}
-                red_black_colormap = colors.LinearSegmentedColormap('red_black', cdict)
-                (vmin,vmax) = ranges['w10mag']
-                norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-                wind_quiver = m.quiver(xlon[::p1,::p1], xlat[::p1,::p1], ugrid[::p1,::p1], vgrid[::p1,::p1], w_mag[::p1,::p1], cmap=red_black_colormap, norm=norm,linewidth=1.5, latlon=True, scale_units='xy',scale=wind_arrow_scale)
-                cb = m.colorbar(wind_quiver, location='left')
+                wind_quiver = m.quiver(xlon[::p1,::p1], xlat[::p1,::p1], ugrid[::p1,::p1], vgrid[::p1,::p1], color='black',linewidths=0.01,edgecolors='k', latlon=True,scale=wind_arrow_scale)
+                #cb = m.colorbar(wind_quiver, location='left')
                 cb.ax.yaxis.set_ticks_position('left')
-                m.quiver(station_lons, station_lats, model_us, model_vs, scale_units='xy',scale=wind_arrow_scale/3., latlon=True, linewidth=2)
-                m.quiver(station_lons, station_lats, station_us, station_vs, scale_units='xy',scale=wind_arrow_scale/3., latlon=True, linewidth=1, color='red')
+                model_quiver = m.quiver(station_lons, station_lats, model_us, model_vs, scale=wind_arrow_scale/2., latlon=True, linewidths=2)
+                station_quiver = m.quiver(station_lons, station_lats, station_us, station_vs, scale=wind_arrow_scale/2., latlon=True, linewidths=2, color='red')
+                ax.add_patch(
+                    patches.Rectangle(
+                        xy=(0.1, 0.9),  # point of origin.
+                        width=20,
+                        height=20,
+                        linewidth=1,
+                        color='red',
+                        fill=True
+                    )
+                )
+                ax.quiverkey(wind_quiver, X=1.125, Y=0.88, U=5, label="5m/s", labelpos='S')
+                ax.quiverkey(model_quiver,X=1.125, Y=0.97, U=5, label="")
+                ax.quiverkey(station_quiver, X=1.125, Y=0.96, U=5, label="5m/s", labelpos='S')
                 #plt.tight_layout()
                 #plt.savefig(f'{outdir}/{prefix}')
                 #plt.clf()
@@ -434,10 +443,10 @@ for domain in domains:
                 cb = m.colorbar(mappable, ticks=np.linspace(0, len(labels), len(labels)))
                 cb.ax.set_yticklabels(labels)
                 cb.ax.tick_params(labelsize=8)
-                m.quiver(xlon[::p1,::p1], xlat[::p1,::p1], ugrid[::p1,::p1], vgrid[::p1,::p1], latlon=True, scale_units='xy',scale=wind_arrow_scale)
+                m.quiver(xlon[::p1,::p1], xlat[::p1,::p1], ugrid[::p1,::p1], vgrid[::p1,::p1], linewidth=0.5,latlon=True, scale=wind_arrow_scale)
 
-                m.quiver(station_lons, station_lats, model_us, model_vs, scale_units='xy',scale=wind_arrow_scale/3., latlon=True, linewidth=2)
-                m.quiver(station_lons, station_lats, station_us, station_vs, scale_units='xy',scale=wind_arrow_scale/3., latlon=True, linewidth=1, color='red')
+                m.quiver(station_lons, station_lats, model_us, model_vs, scale=wind_arrow_scale/2., latlon=True, linewidth=2)
+                m.quiver(station_lons, station_lats, station_us, station_vs, scale=wind_arrow_scale/2., latlon=True, linewidth=1, color='red')
 
                 #plt.tight_layout()
                 #plt.savefig(f'{outdir}/{prefix}')
@@ -459,7 +468,7 @@ for domain in domains:
                 t2m_mesh = m.pcolormesh(clon, clat, t2mgrid,latlon=True,vmin=vmin, vmax=vmax,cmap=t2m_cmap)
                 cb = m.colorbar(t2m_mesh)
 
-                wind_quiver = m.quiver(xlon[::p2,::p2], xlat[::p2,::p2], ugrid[::p2,::p2], vgrid[::p2,::p2], color='black', linewidth=2, latlon=True, scale_units='xy',scale=wind_arrow_scale)
+                wind_quiver = m.quiver(xlon[::p2,::p2], xlat[::p2,::p2], ugrid[::p2,::p2], vgrid[::p2,::p2], color='black', linewidth=0.5,latlon=True, scale=wind_arrow_scale)
                 #cb = m.colorbar(wind_quiver, location='left')
                 #cb.ax.yaxis.set_ticks_position('left')
 
@@ -496,7 +505,7 @@ for domain in domains:
                 cb = m.colorbar(rh_mesh)
 
                 wind_quiver = m.quiver(xlon[::p2, ::p2], xlat[::p2, ::p2], ugrid[::p2, ::p2], vgrid[::p2, ::p2], color='black',
-                                       linewidth=2, latlon=True, scale_units='xy', scale=wind_arrow_scale)
+                                       linewidth=0.5,latlon=True, scale=wind_arrow_scale)
                 # cb = m.colorbar(wind_quiver, location='left')
                 # cb.ax.yaxis.set_ticks_position('left')
 

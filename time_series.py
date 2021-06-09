@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 class Series:
 
     def __init__(self, xs, vals, station, angular=[]):
@@ -44,13 +44,13 @@ class Series:
                     range_samples.append(self.values[idx])
 
             if len(range_samples) >= 2:
-                rescaled_values[i] = self.integrate(range_samples)
+                rescaled_values[i] = self.average(range_samples)
             else:
                 rescaled_values[i] = self.interp(curr_level)
 
         return Series(nxs, rescaled_values, self.station)
 
-    def integrate(self, samples):
+    def average(self, samples):
 
         return sum(samples) / len(samples)
 
@@ -95,4 +95,53 @@ class Series:
                                               right=np.nan)
 
         return Series(nxs, interpvals, self.station)
+
+    def moving_average(self, x, w):
+        return np.convolve(x, np.ones(w), 'same') / w
+
+    def _shift(self, arr, num, fill_value=np.nan):
+        arr = np.roll(arr, num)
+        if num < 0:
+            arr[num:] = fill_value
+        elif num > 0:
+            arr[:num] = fill_value
+        return arr
+    def shift(self, steps_right):
+        values = {}
+        for param in iter(self.values):
+            skip = 0
+            for il in range(len(self.xs)):
+                if np.isnan(self.values[param][il]):
+                    skip = skip + 1
+
+            if skip >= (len(self.xs)) * 0.75:
+                values[param] = np.zeros(len(self.xs))
+                values[param][:] = np.nan
+            else:
+                shifted_arr = self._shift(self.values[param], steps_right)
+                values[param] = shifted_arr
+
+        #xs = self._shift(self.xs, steps_right)
+        return Series(self.xs, values, self.station)
+
+    def integrate(self, window):
+        interpvals = {}
+        for param in iter(self.values):
+            skip = 0
+            for il in range(len(self.xs)):
+                if np.isnan(self.values[param][il]):
+                    skip = skip + 1
+
+            if skip >= (len(self.xs)) * 0.75:
+                interpvals[param] = np.zeros(len(self.xs))
+                interpvals[param][:] = np.nan
+            else:
+                if param == "wdir_deg":
+                    u10avg = self.moving_average(self.values["u10_ms"], window)
+                    v10avg = self.moving_average(self.values["v10_ms"], window)
+                    interpvals[param] = (270. - ( np.arctan2(v10avg,u10avg)*(180./math.pi) ))%360.
+                else:
+                    interpvals[param] = self.moving_average(self.values[param], window)
+
+        return Series(self.xs, interpvals, self.station)
 

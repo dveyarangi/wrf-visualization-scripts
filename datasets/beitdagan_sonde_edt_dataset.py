@@ -151,7 +151,7 @@ def read_sonde(sonde_filename):
                 "hght_msl_m": datasets.util.to_float(parts[6]),
                 "u_ms": u_ms,
                 "v_ms": v_ms,
-                "wdir_deg": (270. - (math.atan2(u_ms, v_ms) * (180. / math.pi))) % 360.,
+                "wdir_deg": (math.atan2(u_ms, v_ms) * (180. / math.pi) + 180) % 360, #(270. - (math.atan2(u_ms, v_ms) * (180. / math.pi))) % 360.,
                 "wvel_ms": (u_ms ** 2 + v_ms ** 2) ** 0.5,
             }
 

@@ -71,7 +71,8 @@ class WRFDataset(ProfileDataset, SurfaceDataset):
         path = self.create_filename(datetime, forecast_hour*60)
 
         ds = datasets.util.load_dataset(path)
-
+        if ds is None:
+            print (f'Failed to read WRF out file {path}')
         times = ds.variables["Times"][:];
         (pi,pj,plat,plon) = self.indexer.get_closest_index( lat, lon )
 

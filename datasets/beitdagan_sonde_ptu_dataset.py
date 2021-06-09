@@ -72,17 +72,17 @@ class BeitDaganSondePTUDataset(ProfileDataset):
                         else:
                             vals[param][idx] = samples[hgt]["wvel_ms"] * 1.94384
                     
-                    elif param == 'u_knt':
-                        if samples[hgt]["u_ms"] is None:
-                            vals[param][idx] = None
+                    elif param == 'u_ms':
+                        if not "u_ms" in samples[hgt]:
+                            vals[param][idx] = -samples[hgt]["wvel_ms"] * math.sin(math.pi/180.*samples[hgt]["wdir_deg"])
                         else:
-                            vals[param][idx] = samples[hgt]["u_ms"] * 1.94384
+                            vals[param][idx] = samples[hgt]["u_ms"]
                             
-                    elif param == 'v_knt':
-                        if samples[hgt]["v_ms"] is None:
-                            vals[param][idx] = None
+                    elif param == 'v_ms':
+                        if not "v_ms" in samples[hgt]:
+                            vals[param][idx] = -samples[hgt]["wvel_ms"] * math.cos(math.pi/180.*samples[hgt]["wdir_deg"])
                         else:
-                            vals[param][idx] = samples[hgt]["v_ms"] * 1.94384
+                            vals[param][idx] = samples[hgt]["v_ms"]
 
                     elif param == 'wdir_deg':  # remove wind dir values when wind speed is < 1 m/s
                         if samples[hgt]["wvel_ms"]  < 1:

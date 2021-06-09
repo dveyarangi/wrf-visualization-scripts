@@ -4,7 +4,7 @@ import datasets.util as util
 from  profile_database import ProfileDatabase
 import datetime as dt
 import numpy as np
-import stations as stations_list
+import stations as st
 from datasets.wrf_dataset import WRFDataset
 import datasets.beitdagan_sonde_dataset as beitdagan_sonde
 import os
@@ -12,48 +12,47 @@ tag = 'config1'
 outdir = f"plots/{tag}/profiles/"
 
 # no of radiosonde: BD 40179
+
 wmoId = 40179
-station = stations_list.stations[wmoId]
+
+all_stations = st.load_surface_stations_map('etc/stations.csv')
+station = all_stations['Beit Dagan']
 stations = [ station ]
 
-params = ["wvel_ms", "wdir_deg", "temp_k", "u_knt", "v_knt"]
+params = ["wvel_ms", "wdir_deg", "temp_k", "u_ms", "v_ms"]
 #dt.datetime(2013, 7, 12, 18,00),
 #dt.datetime(2013, 8, 12, 18,00)
 #dt.datetime(2017,11, 25, 18,00)
 #dt.datetime(2018, 2, 15, 18,00)
 #dt.datetime(2018, 4, 30, 18,00)
 dates = [
-#dt.datetime(2013, 7, 12, 18,00)
-#dt.datetime(2017, 9, 26, 18,00),
-#dt.datetime(2017,11, 25, 18,00),
-#dt.datetime(2018, 2, 15, 18,00),
-#dt.datetime(2018, 4, 30, 18,00),
-dt.datetime(2016, 10, 12, 18, 00),
-dt.datetime(2018, 4, 29, 18, 00)
+    dt.datetime(2016, 10, 12, 18, 00),
+    dt.datetime(2017, 9, 26, 18, 00),
+    dt.datetime(2017, 11, 25, 18, 00),
+    dt.datetime(2018, 2, 15, 18, 00),
+    dt.datetime(2018, 4, 30, 18, 00),
 
-    #dt.datetime(2020, 9, 13, 18,00),
-#dt.datetime(2020, 9, 14, 18,00),
-#dt.datetime(2020, 9, 15, 18,00)
     ]
 
 forecast_hours = [ 6, 18, 30, 42]
+#domains = ["d01"]
 domains = ["d01", "d02", "d03", "d04"]
 
 sonde_dataset = beitdagan_sonde.BeitDaganSondeDataset();
 
 minh = 0
-maxh = 5000
+maxh = 2700
 param_ranges={
-    "Values":{"wvel_ms":(0, 25), "wdir_deg":(0, 400), "temp_k":(250, 310), "u_knt":(0, 50), "v_knt":(0,50)},
-    "Bias":{"wvel_ms":(-15, 15), "wdir_deg":(-15, 15), "temp_k":(-10, 10), "u_knt":(-15, 15), "v_knt":(-15,15)},
-    "RMSE":{"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_knt":(0, 15), "v_knt":(0,15)},
-    "MAE":{"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_knt":(0, 15), "v_knt":(0,15)},
-    "Variance":{"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_knt":(0, 15), "v_knt":(0,15)},
-    "Expectation": {"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_knt":(0, 15), "v_knt":(0,15)}
+    "Values":{"wvel_ms":(0, 25), "wdir_deg":(0, 400), "temp_k":(250, 310), "u_ms":(0, 50), "v_ms":(0,50)},
+    "Bias":{"wvel_ms":(-5, 5), "wdir_deg":(-30, 30), "temp_k":(-5, 5), "u_ms":(-15, 15), "v_ms":(-15,15)},
+    "RMSE":{"wvel_ms":(0, 5), "wdir_deg":(0, 75), "temp_k":(0, 5), "u_ms":(0, 15), "v_ms":(0,15)},
+    "MAE":{"wvel_ms":(0, 5), "wdir_deg":(0, 75), "temp_k":(0, 5), "u_ms":(0, 15), "v_ms":(0,15)},
+    "Variance":{"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_ms":(0, 15), "v_ms":(0,15)},
+    "Expectation": {"wvel_ms":(0, 15), "wdir_deg":(0, 25), "temp_k":(0, 25), "u_ms":(0, 15), "v_ms":(0,15)}
 }
 
 base_wrf_dir = r"E:\meteo\urban-wrf\wrfout\\"
-configs = ["bulk",  'bulk_sst' ]
+configs = ['bulk_sst', 'slucm', 'bulk_ysu' ]
 db = ProfileDatabase()
 all_datasets = {}
 for config in configs:
@@ -64,10 +63,8 @@ for config in configs:
         db.register_dataset(ds_label, dataset)
 ref_profile_id = 'SONDE_HIRES'
 
-def create_plots( date, forecast_offset, domain):
+def create_plots( dates, forecast_offset, domain):
 
-    start_date = date
-    end_date = date
 
     dataset_labels = [ref_profile_id]
     for config in configs:
@@ -95,11 +92,12 @@ def create_plots( date, forecast_offset, domain):
     ref_profiles = {}
     all_profiles = {}
     #print("Caching profiles...")
-    for (heights, ds_profiles, curr_date) in db.iterator(datasets, heights, station, start_date, end_date, forecast_offset):
-        print("Extracting %s..." % curr_date)
+    for date in dates:
+        for (heights, ds_profiles, curr_date) in db.iterator(datasets, heights, station, date, date, forecast_offset):
+            print("Extracting %s..." % curr_date)
 
-        all_profiles[curr_date] = (heights, ds_profiles, curr_date)
-        ref_profiles[curr_date] = ds_profiles[ref_profile_id]
+            all_profiles[curr_date] = (heights, ds_profiles, curr_date)
+            ref_profiles[curr_date] = ds_profiles[ref_profile_id]
 
     if len(all_profiles) == 0:
         print("No data found")
@@ -161,6 +159,7 @@ def create_plots( date, forecast_offset, domain):
     for (heights, profiles, curr_date) in all_profiles.values():
         sonde = ref_profiles[curr_date]
         for ds_label in iter(profiles):
+
             model = profiles[ds_label]
 
             bias = all_bias[ds_label]
@@ -173,9 +172,10 @@ def create_plots( date, forecast_offset, domain):
             count = all_count[ds_label]
             delta = all_delta[ds_label]
 
+
             for param in params:
-                model_values = model.values[param]  # type: np array
-                sonde_values = sonde.values[param]  # type: np array
+                model_values = model.values[param]  # type: np_array
+                sonde_values = sonde.values[param]  # type: np_array
                 # print param
                 # print model_values
                 # print sonde_values
@@ -183,58 +183,50 @@ def create_plots( date, forecast_offset, domain):
                     continue
                 delta = np.zeros((len(heights)))
                 delta[:] = np.nan
-                if param == "wdir_deg":
-                    for ix in range(len(heights)):
-                        if model_values[ix] is not np.nan and sonde_values[ix] is not np.nan:
-                            delta[ix] = util.to_degrees( \
-                                                    mean["u_knt"][ix]-model.values["u_knt"][ix], \
-                                                    mean["v_knt"][ix]- model.values["v_knt"][ix])
-                            #delta[ix] = util.to_degrees(sonde.values["u_knt"][ix], sonde.values["v_knt"][ix]) \
-                            #            - \
-                            #            util.to_degrees(model.values["u_knt"][ix], model.values["v_knt"][ix])
+                for ix in range(len(heights)):
+                    if np.isnan(model_values[ix]) or np.isnan(sonde_values[ix]):
+                        continue
 
-                            delta[ix] = util.wrap_degrees(delta[ix])
-                            if delta[ix] > 180:
-                                delta[ix] = delta[ix]-360
+                    delta[ix] = model_values[ix] - sonde_values[ix]
 
-                else:
-                    for ix in range(len(heights)):
-                        if model_values[ix] is not np.nan and sonde_values[ix] is not np.nan:
-                            delta[ix] = sonde_values[ix] - model_values[ix]
+                    if param == "wdir_deg":
+                        delta[ix] = (delta[ix] + 180) % 360 - 180
+                        if ix == 10:
+                            print(f'{model_values[ix]} {sonde_values[ix]} delta:{delta[ix]}')
+
 
                 for ix in range(len(heights)):
-                    if (not np.isnan(delta[ix])): count[param][ix] += 1
-                    if (np.isnan(delta[ix])): delta[ix] = 0  # delta = 0 , do not increase number of events
-                # print count[param]
+                    d = delta[ix]
+                    if np.isnan(d):
+                        continue
+                    mean[param][ix] += model_values[ix]
 
-                bias[param] += delta
-
-                for ix in range(len(heights)):
-                    #if not np.isnan(sonde_values[ix]):
-                        mean[param][ix] += model_values[ix]
-
-                mae[param] += abs(delta)
-                rmse[param] += delta ** 2
-
-            for param in params:
-                if param != "wdir_deg":
-                    for ix in range(len(heights)):
-                        if count[param][ix] != 0:
-                            mean[param][ix] /= count[param][ix]
+                    bias[param][ix] += d
+                    mae[param][ix] += abs(d)
+                    rmse[param][ix] += d ** 2
+                    count[param][ix] += 1
 
             # print sonde_mean[param]
+    for ds_label in iter(profiles):
+        model = profiles[ds_label]
+
+        bias = all_bias[ds_label]
+        mae = all_mae[ds_label]
+        rmse = all_rmse[ds_label]
+        mean = all_mean[ds_label]
+
+        var = all_var[ds_label]
+        var2 = all_var2[ds_label]
+        count = all_count[ds_label]
+        delta = all_delta[ds_label]
+
+        for param in params:
             for ix in range(len(heights)):
                 if count[param][ix] != 0:
+                    mean[param][ix] /= count[param][ix]
                     bias[param][ix] /= count[param][ix]
                     mae[param][ix] /= count[param][ix]
                     rmse[param][ix] = (rmse[param][ix] / count[param][ix]) ** 0.5
-
-            for ix in range(len(heights)):
-                if (not np.isnan(mean["u_knt"][ix])):
-                    mean["wdir_deg"][ix] = util.to_degrees(mean["u_knt"][ix], mean["v_knt"][ix])
-
-    # completed mean bias ame rmse calculations
-    # print sonde_mean["wdir_deg"]
 
 
     ####################################################
@@ -259,8 +251,8 @@ def create_plots( date, forecast_offset, domain):
 
             for param in params:
 
-                model_values = model.values[param]  # type: np array
-                sonde_values = sonde.values[param]  # type: np array
+                model_values = model.values[param]  # type: np_array
+                sonde_values = sonde.values[param]  # type: np_array
                 if model_values is None or sonde_values is None:
                     continue
 
@@ -268,8 +260,8 @@ def create_plots( date, forecast_offset, domain):
                     for ix in range(len(heights)):
                         if mean[param][ix] is not np.nan and model_values[ix] is not np.nan:
                             delta[param][ix] = util.to_degrees( \
-                                                    mean["u_knt"][ix]-model.values["u_knt"][ix], \
-                                                    mean["v_knt"][ix]- model.values["v_knt"][ix])
+                                                    mean["u_ms"][ix]-model.values["u_ms"][ix], \
+                                                    mean["v_ms"][ix]- model.values["v_ms"][ix])
                         if delta[param][ix] > 180:
                             delta[param][ix] = 360-delta[param][ix]
                          # print sonde_delta[param][ix]
@@ -332,14 +324,14 @@ def create_plots( date, forecast_offset, domain):
     all_var[ref_profile_id] = None
     all_var2[ref_profile_id] = None
 
-    event_tag = start_date.strftime('%Y%m%d%H')
+    event_tag = 'All events avg.'
 
-    draw_array(datasets, config, heights, all_mean, event_tag, forecast_offset, "Values")
-    draw_array(datasets, config, heights, all_bias, event_tag, forecast_offset, "Bias")
-    draw_array(datasets, config, heights, all_rmse, event_tag, forecast_offset, "RMSE")
-    draw_array(datasets, config, heights, all_mae, event_tag, forecast_offset, "MAE")
-    draw_array(datasets, config, heights, all_var, event_tag, forecast_offset, "Variance")
-    draw_array(datasets, config, heights, all_var2, event_tag, forecast_offset, "Expectation")
+    #draw_array(datasets, config, heights, all_mean, event_tag, forecast_offset, "Values")
+    draw_array( config, heights, all_bias, event_tag, forecast_offset, "Bias")
+    draw_array( config, heights, all_rmse, event_tag, forecast_offset, "RMSE")
+    draw_array( config, heights, all_mae, event_tag, forecast_offset, "MAE")
+    draw_array( config, heights, all_var, event_tag, forecast_offset, "Variance")
+    draw_array( config, heights, all_var2, event_tag, forecast_offset, "Expectation")
 
     ########################################
 
@@ -350,29 +342,29 @@ def create_plots( date, forecast_offset, domain):
     # draw from index 2 , eg mae[draw_param][2: nf]
     #
 
-def draw_array(datasets, config, heights, values, start_date, forecast_offset, values_tag):
+def draw_array(config, heights, values, event_tag, forecast_offset, values_tag):
     for draw_param in ["wdir_deg", "wvel_ms", "temp_k"]:
-        nf = len(heights) - 2
+        nf = len(heights)
 
         xlim = param_ranges[values_tag][draw_param]
         series = {}
-        for dataset in datasets:
-            profiles = values[dataset.dataset_label]
-            if profiles is not None:
-                series[dataset.dataset_label] = profiles[draw_param][0: nf]
+        for profile_key in values:
+            if profile_key == ref_profile_id:
+                continue
+            series[profile_key] = values[profile_key][draw_param]
 
-        plot_outdir = f"{outdir}/{start_date.strftime('%Y%m%d%H')}/{domain}/{forecast_offset:02d}/{values_tag}/"
+        plot_outdir = f"{outdir}/{event_tag}/{domain}/{forecast_offset:02d}/{values_tag}/"
         os.makedirs(plot_outdir, exist_ok=True)
-        prefix = f'vertical_profile_{config}_{values_tag}_{start_date.strftime("%Y%m%d%H")}+{forecast_offset:02d}_{domain}_{draw_param}'
+        prefix = f'vertical_profile_{config}_{values_tag}_{event_tag}+{forecast_offset:02d}_{domain}_{draw_param}'
 
-        title = f"{values_tag} {draw_param} {start_date}Z+{forecast_offset:02d}h, station {station.wmoid}"
+        title = f"{values_tag} {draw_param} {event_tag} +{forecast_offset:02d}h, {station.wmoid}"
 
         if "wdir_deg" == draw_param:
-            plot_radial(
-                VerticalProfile(heights[0: nf], series, station, True),
-                None, plot_outdir, xlim, title, prefix + "_rad")
+            #plot_radial(
+            #    VerticalProfile(heights[0: nf], series, station, True),
+            #    None, plot_outdir, xlim, title, prefix + "_rad")
             plot_profile(
-                VerticalProfile(heights[0: nf], series, station, True),
+                VerticalProfile(heights[0: nf], series, station, False),
                 None, plot_outdir, xlim, title, prefix )
         else:
             plot_profile(
@@ -380,11 +372,12 @@ def draw_array(datasets, config, heights, values, start_date, forecast_offset, v
                 None, plot_outdir, xlim, title, prefix )
 
 
-total_plots = len(dates) * len(forecast_hours) * len(domains)
+total_plots = len(forecast_hours) * len(domains)
 plot_idx = 1
-for date in dates:
-    for foffset in forecast_hours:
-        for domain in domains:
-            print(f"Plotting {plot_idx}/{total_plots}) {date} {foffset} {domain}...")
-            plot_idx += 1
-            means = create_plots(date, foffset, domain)
+for foffset in forecast_hours:
+    for domain in domains:
+        print(f"Plotting {plot_idx}/{total_plots}) {foffset} {domain}...")
+        plot_idx += 1
+        means = create_plots(dates, foffset, domain)
+
+

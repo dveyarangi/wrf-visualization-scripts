@@ -61,21 +61,17 @@ def plot_profile( line_profiles, scatter_profiles ,outdir, xlim, title="", prefi
     #plt.show()
     plt.close()
 
-def plot_time_series( line_series, outdir, ylim, title="", prefix=""):
+def plot_time_series( ref_xs, line_series, outdir, ylim, title="", prefix=""):
     if line_series is not None:
-        for label in iter(line_series.values):
+        for label in line_series:
 
-            series = line_series.values[label]
+            (series, xs) = line_series[label]
             datetimes = []
-            xticks = []
-            xlabels = []
-            for idx, millis in enumerate(line_series.xs):
+            for idx, millis in enumerate(xs):
 
                 dt_label = dt.datetime.utcfromtimestamp(millis/1000)
                 datetimes.append(dt_label)
-                if dt_label.hour % 6 == 0 and dt_label.minute == 0:
-                    xticks.append(dt_label)
-                    xlabels.append(dt_label.strftime("%d-%m %HZ"))
+
 
 
             dates = matplotlib.dates.date2num(datetimes)
@@ -88,18 +84,27 @@ def plot_time_series( line_series, outdir, ylim, title="", prefix=""):
             #    series = updated_profile = np.unwrap(updated_profile)
                 #series = updated_profile
 
-            plt.xticks(xticks, xlabels, rotation=30)
+
             plt.gca().xaxis.grid(True,linestyle='--')
             plt.gca().yaxis.grid(True, linestyle='--')
             plt.plot( datetimes, series, label=label)
 
     plt.title(title)
     plt.legend(loc='best')
+    xticks = []
+    xlabels = []
+    for idx, millis in enumerate(ref_xs):
 
+        dt_label = dt.datetime.utcfromtimestamp(millis / 1000)
+        datetimes.append(dt_label)
+        if dt_label.hour % 6 == 0 and dt_label.minute == 0:
+            xticks.append(dt_label)
+            xlabels.append(dt_label.strftime("%d-%m %HZ"))
+    plt.xticks(xticks, xlabels, rotation=30)
     if not ylim is None:
         (ymin, ymax) = ylim
-        xmin = line_series.xs[0]
-        xmax = line_series.xs[len(line_series.xs)-1]
+        xmin = ref_xs[0]
+        xmax = ref_xs[len(ref_xs)-1]
         plt.ylim([ymin, ymax])
 
 
@@ -111,7 +116,7 @@ def plot_time_series( line_series, outdir, ylim, title="", prefix=""):
 
 rescale = lambda y: (y - np.min(y)) / (np.max(y) - np.min(y))
 
-def plot_bars( bar_series,outdir, ylim=None, title="", prefix="", side_legend=None):
+def plot_bars( bar_series,outdir, errors=None, ylim=None, title="", prefix="", side_legend=None):
     fig, ax = plt.subplots()
     colors = plt.get_cmap("tab20").colors
     if bar_series is not None:
@@ -123,7 +128,7 @@ def plot_bars( bar_series,outdir, ylim=None, title="", prefix="", side_legend=No
             series = bar_series.values[label]
             xticks = np.arange(len(bar_series.xs)-1)
 
-            ax.bar(xticks+(idx+1)/series_num, series, width=1/series_num, label=label,
+            ax.bar(xticks+(idx+1)/series_num, series, yerr=errors, ecolor='black', capsize=3, width=1/series_num, label=label,
                    color=colors[idx*3%len(colors)])
             ax.set_xticks(xticks)
             ax.set_xticklabels(xlabels, rotation=30)
