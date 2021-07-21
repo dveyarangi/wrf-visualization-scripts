@@ -62,6 +62,8 @@ def plot_profile( line_profiles, scatter_profiles ,outdir, xlim, title="", prefi
     plt.close()
 
 def plot_time_series( ref_xs, line_series, outdir, ylim, title="", prefix=""):
+    plt.subplots(figsize=(8, 5))
+
     if line_series is not None:
         for label in line_series:
 
@@ -83,7 +85,6 @@ def plot_time_series( ref_xs, line_series, outdir, ylim, title="", prefix=""):
 
             #    series = updated_profile = np.unwrap(updated_profile)
                 #series = updated_profile
-
 
             plt.gca().xaxis.grid(True,linestyle='--')
             plt.gca().yaxis.grid(True, linestyle='--')
@@ -116,8 +117,8 @@ def plot_time_series( ref_xs, line_series, outdir, ylim, title="", prefix=""):
 
 rescale = lambda y: (y - np.min(y)) / (np.max(y) - np.min(y))
 
-def plot_bars( bar_series,outdir, errors=None, ylim=None, title="", prefix="", side_legend=None):
-    fig, ax = plt.subplots()
+def plot_bars( bar_series,outdir, errors=None, ylim=None, title="", prefix="", side_legend=None, counts=None):
+    fig, ax = plt.subplots(figsize=(8,5))
     colors = plt.get_cmap("tab20").colors
     if bar_series is not None:
         series_num = len(bar_series.values)+1
@@ -126,12 +127,28 @@ def plot_bars( bar_series,outdir, errors=None, ylim=None, title="", prefix="", s
         for idx, label in enumerate(iter(bar_series.values)):
 
             series = bar_series.values[label]
-            xticks = np.arange(len(bar_series.xs)-1)
 
-            ax.bar(xticks+(idx+1)/series_num, series, yerr=errors, ecolor='black', capsize=3, width=1/series_num, label=label,
+
+            xticks = np.arange(len(bar_series.xs)-1)
+            if errors is not None and label in errors:
+                err = errors[label]
+            else:
+                err = None
+
+            ax.bar(xticks+(idx+1)/series_num, series, yerr=err, ecolor='grey', capsize=3, width=1/series_num, label=label,
                    color=colors[idx*3%len(colors)])
             ax.set_xticks(xticks)
             ax.set_xticklabels(xlabels, rotation=30)
+
+            if counts is not None and len(counts) > 0:
+                count = counts[label]
+                for i, v in enumerate(series):
+                    countx = xticks[i]+(idx+0.5)/series_num
+                    county = v
+                    if v < 0:
+                        county = v
+
+                    ax.text(countx, county, str(int(count[i])), color='black', size=6)
 
             if not ylim is None:
                 (ymin, ymax) = ylim

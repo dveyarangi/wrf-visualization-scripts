@@ -8,17 +8,17 @@ from timeseries.generate_surface_timeseries_stationavg_statistics_plots import g
 from timeseries.generate_surface_timeseries_allavg_statistics_plots import generate as generate_stationavg_eventavg_statistics
 
 from timeseries.timeseries_cfg import *
-#generate_station_event_plots(configs, stations, domain_groups, time_groups)
+generate_station_event_plots(configs, stations, domain_groups, time_groups)
 
-#generate_stationma_event_plots(configs, stations, domain_groups, time_groups)
+generate_stationma_event_plots(configs, stations, domain_groups, time_groups)
 
 generate_station_event_statistics(configs, stations, domain_groups, time_groups)
 
-#generate_station_event_corr(configs, stations, domain_groups, time_groups)
+generate_station_event_corr(configs, stations, domain_groups, time_groups)
 
-#generate_allstations_event_statistics(configs, stations, domain_groups, time_groups)
+generate_allstations_event_statistics(configs, stations, domain_groups, time_groups)
 
-#generate_station_eventavg_statistics(configs, stations, domain_groups, time_groups)
-#generate_stationavg_event_statistics(configs, stations, domain_groups, time_groups)
+generate_station_eventavg_statistics(configs, stations, domain_groups, time_groups)
+generate_stationavg_event_statistics(configs, stations, domain_groups, time_groups)
 
 generate_stationavg_eventavg_statistics(configs, stations, domain_groups, time_groups)

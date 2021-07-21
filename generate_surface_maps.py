@@ -165,7 +165,7 @@ domain_wind_scaling = { 'd03':100, 'd04':100 }
 
 tags = ['config1']
 configs = {'bulk_sst':'bulk', 'slucm':'slucm', 'bulk_ysu':'bulk_ysu'} #
-#configs = ['bulk_sst'] #
+configs = {'mlucm':'mlucm'}
 #configs = ['bulk_d01_input_only'] # 'bulk_nofeedback'
 
 surface_ds = sid.SurfaceDataset(sid.surface_archive_dir)

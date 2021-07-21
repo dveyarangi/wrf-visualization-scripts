@@ -31,7 +31,7 @@ for tag in tags:
 
 
 
-def create_plots(time_groups, tag, configs, domain_group, stations, window):
+def create_plots(time_groups, tag, cfg, domain_group, stations, window):
 
     outdir = f'{timeseries.outdir}/{tag}/series/'
     os.makedirs(outdir, exist_ok=True)
@@ -45,8 +45,7 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
     # wrfpld04_series = wrfpld04.get_time_series(station,  start_time, end_time,  params)
     dataset_labels = [sid.DATASET_LABEL]
     for domain in domain_group:
-        for cfg in configs:
-            dataset_labels.append(f"{configs[cfg]} {domain.upper()}")
+        dataset_labels.append(f"{cfg} {domain.upper()}")
 
     datasets = []
 
@@ -204,15 +203,15 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
 
 
             series = {}
-            errors = {}
 
             for ds_label in dataset_labels:
                 if not ds_label.startswith("surface obs"):
                     series[ds_label] = metrics_values[ds_label][draw_param]
                     if metrics_name == "Bias":
-                        errors[ds_label] = all_var2[ds_label][draw_param]
+                        errors = all_var2[ds_label][draw_param]
+                    else:
+                        errors= None
 
-            cfg = 'All'
             prefix = f'surface_timeseries_{cfg}_{metrics_name}_All Events_{domain_label}_{draw_param}_All Stations Avg_{window_tag}'
 
             title = f"{draw_param.upper()} {domain_label} {metrics_name}, {cfg}, All Events&StationsAvg."
@@ -235,14 +234,12 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
 def generate(configs, stations, domain_groups, time_groups):
     windows = [0, 60, 120]
 
-    total_plots = len(windows)*len(domain_groups)
+    total_plots = len(configs)*len(windows)*len(domain_groups)
     plot_idx = 1
     for tag in tags:
-        for domain_group in domain_groups:
-            for window in windows:
-                print(f"Plotting ({plot_idx}/{total_plots}) w{window} {domain_group[0]}...")
-                create_plots(time_groups, tag, configs, domain_group, stations, window)
-                plot_idx = plot_idx + 1
-
-if __name__ == "__main__":
-    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)
+        for cfg in configs:
+            for domain_group in domain_groups:
+                for window in windows:
+                    print(f"Plotting ({plot_idx}/{total_plots}) {cfg} w{window} {domain_group[0]}...")
+                    create_plots(time_groups, tag, configs[cfg], domain_group, stations, window)
+                    plot_idx = plot_idx + 1

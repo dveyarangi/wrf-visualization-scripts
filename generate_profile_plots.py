@@ -51,6 +51,7 @@ param_ranges={
 
 base_wrf_dir = r"E:\meteo\urban-wrf\wrfout\\"
 configs = {'bulk_sst':'bulk', 'slucm':'slucm','bulk_ysu':'bulk_ysu'}
+configs = {'mlucm':'mlucm'}
 db = ProfileDatabase()
 
 all_datasets = {}

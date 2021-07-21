@@ -27,8 +27,8 @@ param_ranges = {
 "wvel_ms":(0,10), "wdir_deg":(0, 150), "temp2m_k":(0,10), "rh2m": (0,50)
 }
 domain_timestep = {"d04":20}
-configs = {'bulk_sst':'bulk','slucm':'slucm','mlucm':'mlucm','bulk_ysu':'bulk_ysu'}
-#configs = {'mlucm':'mlucm'}
+configs = {'bulk_ysu':'bulk_ysu','bulk_sst':'bulk','slucm':'slucm'}
+configs = {'mlucm':'mlucm'}
 time_range_groups = [ (10,22),(22,34),(34,48) ]
 
 station_names = [ \

@@ -21,7 +21,7 @@ base_wrf_dir = r"E:\meteo\urban-wrf\wrfout\\"
 
 time = dt.datetime(2020, 9, 13, 18, 00)
 forecast_minute = 0
-dataset = WRFDataset(f"{base_wrf_dir}\\bulk", domain)
+dataset = WRFDataset(f"{base_wrf_dir}\\bulk_sst", domain)
 
 path = dataset.create_filename(time, forecast_minute)
 # print(f'{curr_time} - {path}')
@@ -72,7 +72,7 @@ station_names = [ \
 
 all_stations = st.load_surface_stations(st.IMS_STATIONS_FILE)
 #stations = [st.stations[station_name] for station_name in station_names]
-wrfds = WRFDataset(f"{base_wrf_dir}\\bulk", domain)
+wrfds = WRFDataset(f"{base_wrf_dir}\\bulk_sst", domain)
 (latmin,lonmin,latmax,lonmax) = wrfds.get_domain_coverage()
 #(latmin,lonmin,latmax,lonmax) = st.get_aoi(all_stations)
 stations = st.filter_by_aoi(all_stations, latmin,lonmin,latmax,lonmax)

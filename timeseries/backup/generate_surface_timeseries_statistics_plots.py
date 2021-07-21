@@ -32,7 +32,7 @@ for tag in tags:
 
 import pytz
 
-def create_plots(start_date, end_date, configs, tag, domain_group, station, window):
+def create_plots(start_date, end_date, tag, cfg, domain_group, station, window):
     outdir = f'{timeseries.outdir}/{tag}/series/'
     os.makedirs(outdir, exist_ok=True)
     #station = sid.stations[wmoId]
@@ -45,8 +45,7 @@ def create_plots(start_date, end_date, configs, tag, domain_group, station, wind
     # wrfpld04_series = wrfpld04.get_time_series(station,  start_time, end_time,  params)
     dataset_labels = [sid.DATASET_LABEL]
     for domain in domain_group:
-        for cfg in configs:
-            dataset_labels.append(f"{configs[cfg]} {domain.upper()}")
+        dataset_labels.append(f"{cfg} {domain.upper()}")
 
     datasets = []
 
@@ -219,19 +218,23 @@ def create_plots(start_date, end_date, configs, tag, domain_group, station, wind
             nf = times_num - 2
 
             series = {}
-            errors = {}
 
             for ds_label in dataset_labels:
                 if not ds_label.startswith("surface obs"):
                     series[ds_label] = metrics_values[ds_label][draw_param]
                     if metrics_name == "Bias":
-                        errors[ds_label] = all_var2[ds_label][draw_param]
+                        errors = all_var2[ds_label][draw_param]
+                    else:
+                        errors= None
 
-            cfg = 'All'
             prefix = f'surface_timeseries_{cfg}_{metrics_name}_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_{station.name}_{window_tag}'
+
+
             title = f"{draw_param.upper()} {metrics_name}, {cfg}, {station.name}, {domain_label}"
             if window_hours != 0:
                 title += f', {window_str}'
+            print(" * " + title)
+            is_angular = "wdir_deg" == draw_param
             plot_outdir = f'{outdir}/{start_date.strftime("%Y%m%d%H")}/{domain_label}/{metrics_name}'
             os.makedirs(plot_outdir, exist_ok=True)
             (ymin,ymax) = param_ranges[draw_param]
@@ -247,18 +250,15 @@ def create_plots(start_date, end_date, configs, tag, domain_group, station, wind
 
 def generate(configs, stations, domain_groups, time_groups):
     windows = [0, 60, 120]
-    total_plots = len(tags)*len(stations) * len(domain_groups) * len(time_groups) * len(windows)
+    total_plots = len(tags)*len(configs)*len(stations) * len(domain_groups) * len(time_groups) * len(windows)
     plot_idx = 1
 
     for tag in tags:
-        for station in stations:
-            for domain_group in domain_groups:
-                for (start_time, end_time) in time_groups:
-                    for window in windows:
-                        print(f"Plotting ({plot_idx}/{total_plots}) {station.wmoid} {domain_group[0]} {start_time} - {end_time}")
-                        create_plots(start_time, end_time, configs, tag, domain_group, station, window)
-                        plot_idx = plot_idx + 1
-
-
-if __name__ == "__main__":
-    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)
+        for cfg in configs:
+            for station in stations:
+                for domain_group in domain_groups:
+                    for (start_time, end_time) in time_groups:
+                        for window in windows:
+                            print(f"Plotting ({plot_idx}/{total_plots}) {station.wmoid} {domain_group[0]} {start_time} - {end_time}")
+                            create_plots(start_time, end_time, tag, configs[cfg], domain_group, station, window)
+                            plot_idx = plot_idx + 1

@@ -1,12 +1,17 @@
+################################################
+# plot station bars, averaged over all events
+# creates both merged plot with all stations at once and plots for each station separately
+
+
 import datetime as dt
 from datasets.wrf_dataset import WRFDataset
 import datasets.surface_dataset as sid
 import numpy as np
 from time_series import Series
 from plot_profile import plot_bars
+import scipy.stats as scst
 import os
 import statistics_util as sutil
-import scipy.stats as scst
 import timeseries.timeseries_cfg as timeseries
 
 tags = timeseries.tags
@@ -16,8 +21,8 @@ configs = timeseries.configs
 time_range_groups = timeseries.time_range_groups
 domain_timestep = timeseries.domain_timestep
 
-
 surface_ds = sid.SurfaceDataset(sid.surface_archive_dir)
+
 tag_datasets = {}
 
 for tag in tags:
@@ -67,6 +72,50 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
         print(f"Missing data for {station.wmoid}")
         return
 
+    curr_series = {}
+    for station in stations:
+        for ds_label in dataset_labels:
+            for (start_time, end_time) in time_groups:
+                series_label = f'{ds_label}_{station.wmoid}_{start_time}_{end_time}'
+                dataset = all_datasets[ds_label]
+                series = dataset.get_time_series(station, start_time, end_time, params)
+
+                curr_series[series_label] = series
+
+    times_num = len(time_range_groups)
+    all_bias = {}
+    all_mae = {}
+    all_rmse = {}
+    all_mean = {}
+    all_var = {}
+    all_var2 = {}
+    all_count = {}  # at each z level number of events  when model and measurement exist
+    all_delta = {}
+    for ds_label in dataset_labels:
+        for station in stations:
+            point_label = f'{ds_label}_{station.wmoid}'
+            bias = all_bias[point_label] = {}
+            mae = all_mae[point_label] = {}
+            rmse = all_rmse[point_label] = {}
+            mean = all_mean[point_label] = {}
+            var = all_var[point_label] = {}
+            var2 = all_var2[point_label] = {}
+            count = all_count[point_label] = {}
+            delta = all_delta[point_label] = {}
+
+            for param in params:
+
+                bias[param] = np.zeros(times_num)
+                mae[param] = np.zeros(times_num)
+                rmse[param] = np.zeros(times_num)
+                mean[param] = np.zeros(times_num)
+
+                var[param] = np.zeros(times_num)
+                var2[param] = np.zeros(times_num)
+
+                count[param] = np.zeros(times_num)
+                delta[param] = {i:[] for i in range(times_num)}
+
     if window == 0:
         window_steps = 0
     else:
@@ -79,51 +128,18 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
     if window > 0:
         window_str = f"+/-{int(window_hours)}hrs avg"
 
-    curr_series = {}
-    for station in stations:
-        for ds_label in dataset_labels:
-            for (start_time, end_time) in time_groups:
-                series_label = f'{ds_label}_{station}_{start_time}_{end_time}'
-                dataset = all_datasets[ds_label]
-                series = dataset.get_time_series(station, start_time, end_time, params)
-
-                curr_series[series_label] = series
-
-    times_num = len(time_range_groups)
-    all_bias = {}
-    all_mae = {}
-    all_rmse = {}
-    all_var2 = {}
-    all_count = {}  # at each z level number of events  when model and measurement exist
-    all_deltas = {}
-
-
-    for ds_label in dataset_labels:
-        bias = all_bias[ds_label] = {}
-        mae = all_mae[ds_label] = {}
-        rmse = all_rmse[ds_label] = {}
-        var2 = all_var2[ds_label] = {}
-        count = all_count[ds_label] = {}
-        deltas = all_deltas[ds_label] = {}
-        for param in params:
-            bias[param] = np.zeros(times_num)
-            mae[param] = np.zeros(times_num)
-            rmse[param] = np.zeros(times_num)
-            var2[param] = np.zeros(times_num)
-            count[param] = np.zeros(times_num)
-            deltas[param] = {i:[] for i in range(times_num)}
-
     #print("Calculating statistics...")
     for station in stations:
         for (start_time, end_time) in time_groups:
+
 
             surface_raw = ref_series[f'{station.wmoid}_{start_time}_{end_time}']
             if surface_raw is None:
                 continue
                 #print(station.wmoid)
             for ds_label in dataset_labels:
-                series_label = f'{ds_label}_{station}_{start_time}_{end_time}'
-                point_label = f'{ds_label}'
+                series_label = f'{ds_label}_{station.wmoid}_{start_time}_{end_time}'
+                point_label = f'{ds_label}_{station.wmoid}'
                 model = curr_series[series_label]
 
                 surface = surface_raw.interpolate(model.xs)
@@ -133,9 +149,9 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
                 bias = all_bias[point_label]
                 mae = all_mae[point_label]
                 rmse = all_rmse[point_label]
-
                 count = all_count[point_label]
-                deltas = all_deltas[point_label]
+                deltas = all_delta[point_label]
+
                 for param in params:
                     (xs, delta, surface_values, model_values) = sutil.get_delta_series(model, surface, param)
                     if delta is None:
@@ -159,34 +175,27 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
 
                             mae[param][range_ix] += abs(delta[ix])
                             rmse[param][range_ix] += delta[ix] ** 2
-
                             deltas[param][range_ix].append(delta[ix])
-                        #mean[param][ix] += model_values[ix]
 
-                    # print count[param]
+        for ds_label in dataset_labels:
+            point_label = f'{ds_label}_{station.wmoid}'
+            bias = all_bias[point_label]
+            mae = all_mae[point_label]
+            rmse = all_rmse[point_label]
+            count = all_count[point_label]
+            deltas = all_delta[point_label]
+            var2 = all_var2[point_label]
+            for ix in range(times_num):
 
-    for ds_label in dataset_labels:
-        point_label = f'{ds_label}'
-        bias = all_bias[point_label]
-        mae = all_mae[point_label]
-        rmse = all_rmse[point_label]
-        var2 = all_var2[point_label]
-        count = all_count[point_label]
-        deltas = all_deltas[point_label]
-        for ix in range(times_num):
-
-            for param in params:
-                if count[param][ix] >= 5:
-                    bias[param][ix] /= count[param][ix]
-                    mae[param][ix] /= count[param][ix]
-                    rmse[param][ix] = (rmse[param][ix] / count[param][ix]) ** 0.5
-
-                    if param == "wdir_deg":
-                        var2[param][ix] = scst.circstd(deltas[param][ix], low=0, high=360, nan_policy='omit')
-                    else:
-                        var2[param][ix] = np.nanstd(deltas[param][ix])
-                    #if not np.isnan(mean["u10_ms"][ix]):
-                        #mean["wdir_deg"][ix] = util.to_degrees(mean["u10_ms"][ix], mean["v10_ms"][ix])
+                for param in params:
+                    if count[param][ix] >= 5:
+                        bias[param][ix] /= count[param][ix]
+                        mae[param][ix] /= count[param][ix]
+                        rmse[param][ix] = (rmse[param][ix] / count[param][ix]) ** 0.5
+                        if param == "wdir_deg":
+                            var2[param][ix] = scst.circstd(deltas[param][ix], low=0, high=360, nan_policy='omit')
+                        else:
+                            var2[param][ix] = np.nanstd(deltas[param][ix])
 
     # completed mean bias ame rmse calculations
     # print sonde_mean["wdir_deg"]
@@ -198,51 +207,54 @@ def create_plots(time_groups, tag, configs, domain_group, stations, window):
     time_range_groups_labels = [f'Day {int((x-6)/24)+1} {(x-6)%24:02}Z' for (x,y) in time_range_groups]
     (_, y) = time_range_groups[-1]
     time_range_groups_labels.append(f'Day {int((y-6)/24)+1} {(y-6)%24:02}Z')
+
     for metrics_name in all_values.keys():
         metrics_values = all_values[metrics_name]
+        errors = None
         for draw_param in ["wdir_deg", "wvel_ms", "temp2m_k", "rh2m"]:
+            ################################################
+            # plot event average per station
 
-
-            series = {}
-            errors = {}
-
-            for ds_label in dataset_labels:
-                if not ds_label.startswith("surface obs"):
-                    series[ds_label] = metrics_values[ds_label][draw_param]
+            for station in stations:
+                series = {}
+                errors = {}
+                for ds_label in dataset_labels:
+                    point_label = f'{ds_label}_{station.wmoid}'
+                    if not ds_label.startswith("surface obs"):
+                        series[ds_label] = metrics_values[point_label][draw_param]
                     if metrics_name == "Bias":
-                        errors[ds_label] = all_var2[ds_label][draw_param]
+                        errors[ds_label] = all_var2[point_label][draw_param]
+                cfg = 'All'
+                prefix = f'surface_timeseries_{cfg}_{metrics_name}_All Events_{domain_label}_{draw_param}_{station.wmoid}_{window_tag}'
 
-            cfg = 'All'
-            prefix = f'surface_timeseries_{cfg}_{metrics_name}_All Events_{domain_label}_{draw_param}_All Stations Avg_{window_tag}'
+                title = f"{draw_param.upper()} {domain_label} {metrics_name}, {cfg}, All Events Avg."
+                if window_hours != 0:
+                     title += f', {window_str}'
+                print(" * " + title)
+                is_angular = "wdir_deg" == draw_param
+                plot_outdir = f'{outdir}/All Events/{domain_label}/{metrics_name}'
+                os.makedirs(plot_outdir, exist_ok=True)
+                (ymin,ymax) = param_ranges[draw_param]
+                if metrics_name == "Bias":
+                    ylim = (-ymax*2/3, ymax*2/3)
+                else:
+                    ylim = (0, ymax)
 
-            title = f"{draw_param.upper()} {domain_label} {metrics_name}, {cfg}, All Events&StationsAvg."
-            if window_steps != 0:
-                title += f', {window_str}'
-            print(" * " + title)
-            is_angular = "wdir_deg" == draw_param
-            plot_outdir = f'{outdir}/All Events/{domain_label}/{metrics_name}'
-            os.makedirs(plot_outdir, exist_ok=True)
-            (ymin,ymax) = param_ranges[draw_param]
-            if metrics_name == "Bias":
-                ylim = (-ymax*2/3, ymax*2/3)
-            else:
-                ylim = (0, ymax)
-
-            plot_bars(
-                Series(time_range_groups_labels, series, "", ["wdir_deg"]),
-                plot_outdir, errors=errors, ylim=ylim, title=title, prefix=prefix)
-
+                plot_bars(
+                    Series(time_range_groups_labels, series, "", ["wdir_deg"]),
+                    plot_outdir, errors=errors,ylim=ylim, title=title, prefix=prefix)
 def generate(configs, stations, domain_groups, time_groups):
     windows = [0, 60, 120]
 
-    total_plots = len(windows)*len(domain_groups)
+    total_plots = len(domain_groups) *len(windows)
     plot_idx = 1
     for tag in tags:
-        for domain_group in domain_groups:
+        for cfg in configs:
             for window in windows:
-                print(f"Plotting ({plot_idx}/{total_plots}) w{window} {domain_group[0]}...")
-                create_plots(time_groups, tag, configs, domain_group, stations, window)
-                plot_idx = plot_idx + 1
+                for domain_group in domain_groups:
+                    print(f"Plotting ({plot_idx}/{total_plots}) {domain_group[0]} {cfg} w{window}")
+                    create_plots(time_groups, tag, configs, domain_group, stations, window)
+                    plot_idx = plot_idx + 1
 
 if __name__ == "__main__":
     generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)

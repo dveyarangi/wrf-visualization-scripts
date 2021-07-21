@@ -36,7 +36,7 @@ for tag in tags:
 
 
 
-def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window):
+def create_plots(start_date, end_date, tag, configs, domain_group, stations, window):
 
     outdir = f'{timeseries.outdir}/{tag}/series/'
     os.makedirs(outdir, exist_ok=True)
@@ -50,7 +50,8 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
     # wrfpld04_series = wrfpld04.get_time_series(station,  start_time, end_time,  params)
     dataset_labels = [sid.DATASET_LABEL]
     for domain in domain_group:
-            dataset_labels.append(f"{cfg} {domain.upper()}")
+        for cfg in configs:
+            dataset_labels.append(f"{configs[cfg]} {domain.upper()}")
 
     datasets = []
 
@@ -147,7 +148,7 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
                 mae = all_mae[ds_label]
                 rmse = all_rmse[ds_label]
                 count = all_count[ds_label]
-                deltas = all_delta[point_label]
+                deltas = all_delta[ds_label]
                 for param in params:
                     (xs, delta, surface_values, model_values) = sutil.get_delta_series(model, surface, param)
                     if delta is None:
@@ -187,6 +188,7 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
         rmse = all_rmse[ds_label]
         count = all_count[ds_label]
         deltas = all_delta[ds_label]
+        var2 = all_var2[ds_label]
         for ix in range(times_num):
 
             for param in params:
@@ -217,15 +219,15 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
 
 
             series = {}
+            errors = {}
 
             for ds_label in dataset_labels:
                 if not ds_label.startswith("surface obs"):
                     series[ds_label] = metrics_values[ds_label][draw_param]
                     if metrics_name == "Bias":
-                        errors = all_var2[ds_label][draw_param]
-                    else:
-                        errors= None
+                        errors[ds_label] = all_var2[ds_label][draw_param]
 
+            cfg = 'All'
             prefix = f'surface_timeseries_{cfg}_{metrics_name}_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_All Stations Avg_{window_tag}'
 
             title = f"{draw_param.upper()} {domain_label} {metrics_name}, {cfg}, Stations Avg., {start_date.strftime('%Y-%m-%d %H')}Z"
@@ -250,15 +252,16 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
 def generate(configs, stations, domain_groups, time_groups):
     windows = [0, 60, 120]
 
-    total_plots = len(configs)*len(windows)*len(domain_groups) * len(time_groups)
+    total_plots = len(windows)*len(domain_groups) * len(time_groups)
     plot_idx = 1
 
     for tag in tags:
-        for cfg in configs:
-            for domain_group in domain_groups:
-                for window in windows:
-                    for (start_time, end_time) in time_groups:
+        for domain_group in domain_groups:
+            for window in windows:
+                for (start_time, end_time) in time_groups:
+                    print(f"Plotting ({plot_idx}/{total_plots}) {domain_group[0]} {start_time} - {end_time}")
+                    create_plots(start_time, end_time, tag, configs, domain_group, stations,window)
+                    plot_idx = plot_idx + 1
 
-                        print(f"Plotting ({plot_idx}/{total_plots}) {domain_group[0]} {cfg} {start_time} - {end_time}")
-                        create_plots(start_time, end_time, tag, configs[cfg], domain_group, stations,window)
-                        plot_idx = plot_idx + 1
+if __name__ == "__main__":
+    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)

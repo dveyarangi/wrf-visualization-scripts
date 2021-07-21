@@ -216,6 +216,3 @@ def generate(configs, stations, domain_groups, time_groups):
                         print(f"Plotting ({plot_idx}/{total_plots}) {station.wmoid} {domain_group[0]} {start_time} - {end_time}")
                         create_plots(start_time, end_time, tag, configs[cfg], domain_group, station, windows)
                         plot_idx = plot_idx + 1
-
-if __name__ == "__main__":
-    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)

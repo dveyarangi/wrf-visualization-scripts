@@ -28,7 +28,7 @@ for tag in tags:
     tag_datasets[tag] = domain_datasets
 
 
-def create_plots(start_date, end_date, tag, configs, domain_group, station, window):
+def create_plots(start_date, end_date, tag, cfg, domain_group, station, window):
 
     outdir = f'{timeseries.outdir}/{tag}/series/'
     os.makedirs(outdir, exist_ok=True)
@@ -44,8 +44,7 @@ def create_plots(start_date, end_date, tag, configs, domain_group, station, wind
     # wrfpld04_series = wrfpld04.get_time_series(station,  start_time, end_time,  params)
     dataset_labels = [sid.DATASET_LABEL]
     for domain in domain_group:
-        for cfg in configs:
-            dataset_labels.append(f"{configs[cfg]} {domain.upper()}")
+        dataset_labels.append(f"{cfg} {domain.upper()}")
 
     datasets = []
 
@@ -125,7 +124,7 @@ def create_plots(start_date, end_date, tag, configs, domain_group, station, wind
         for ds_label in curr_series:
             series[ds_label] = all_values[ds_label][draw_param]
 
-        cfg = 'All'
+
         prefix = f'surface_timeseries_{cfg}_Values_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_{station.name}_{window_tag}'
 
         title = f"{draw_param.upper()}, {cfg}, {station.name}, {start_date.strftime('%Y-%m-%d %H')}Z+{int((end_date-start_date).total_seconds()/3600)}hrs"
@@ -140,21 +139,19 @@ def create_plots(start_date, end_date, tag, configs, domain_group, station, wind
 windows = [0, 60, 120]
 def generate(configs, stations, domain_groups, time_groups):
 
-    total_plots = len(tags)*len(stations) * len(domain_groups) * len(time_groups)*len(windows)
+    total_plots = len(tags)*len(configs)*len(stations) * len(domain_groups) * len(time_groups)*len(windows)
     plot_idx = 1
 
 
     for tag in tags:
+        for cfg in configs:
             for station in stations:
                 for domain_group in domain_groups:
                     for (start_time, end_time) in time_groups:
                         for window in windows:
                             print(f"Plotting ({plot_idx}/{total_plots}) {station.name} {'-'.join(domain_group)} {start_time} - {end_time}")
                             try:
-                                create_plots(start_time, end_time, tag, configs, domain_group, station, window)
+                                create_plots(start_time, end_time, tag, configs[cfg], domain_group, station, window)
                             except:
                                 print( "Unexpected error:", sys.exc_info()[0])
                             plot_idx = plot_idx + 1
-
-if __name__ == "__main__":
-    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)

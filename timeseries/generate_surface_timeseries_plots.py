@@ -21,11 +21,11 @@ for tag in tags:
     base_wrf_dir = r"E:\meteo\urban-wrf\wrfout\\"
     for domain in ["d01", "d02", "d03", "d04"]:
         for cfg in configs:
-            domain_datasets [f"{cfg} {domain.upper()}"] = WRFDataset(f"{base_wrf_dir}\\{cfg}", domain)
+            domain_datasets [f"{configs[cfg]} {domain.upper()}"] = WRFDataset(f"{base_wrf_dir}\\{cfg}", domain)
     tag_datasets[tag] = domain_datasets
 
 
-def create_plots(start_date, end_date, tag, config, domain_group, station):
+def create_plots(start_date, end_date, tag, configs, domain_group, station):
 
     outdir = f'{timeseries.outdir}/{tag}/series/'
     os.makedirs(outdir, exist_ok=True)
@@ -41,7 +41,8 @@ def create_plots(start_date, end_date, tag, config, domain_group, station):
     # wrfpld04_series = wrfpld04.get_time_series(station,  start_time, end_time,  params)
     dataset_labels = [sid.DATASET_LABEL]
     for domain in domain_group:
-        dataset_labels.append(f"{cfg} {domain.upper()}")
+        for cfg in configs:
+            dataset_labels.append(f"{configs[cfg]} {domain.upper()}")
 
     datasets = []
 
@@ -101,10 +102,10 @@ def create_plots(start_date, end_date, tag, config, domain_group, station):
         for ds_label in dataset_labels:
             series[ds_label] = all_values[ds_label][draw_param]
 
+        cfg = 'All'
+        prefix = f'surface_timeseries_{cfg}_Values_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_{station.name}_model steps'
 
-        prefix = f'surface_timeseries_{configs[config]}_Values_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_{station.name}_model steps'
-
-        title = f"{draw_param.upper()}, {configs[config]}, {station.name}, {start_date.strftime('%Y-%m-%d %H')}Z+{int((end_date-start_date).total_seconds()/3600)}hrs"
+        title = f"{draw_param.upper()}, {cfg}, {station.name}, {start_date.strftime('%Y-%m-%d %H')}Z+{int((end_date-start_date).total_seconds()/3600)}hrs"
         print(" * " + title)
         is_angular = "wdir_deg" == draw_param
         plot_outdir = f'{outdir}/{start_date.strftime("%Y%m%d%H")}/{domain_label}/Values/'
@@ -114,13 +115,15 @@ def create_plots(start_date, end_date, tag, config, domain_group, station):
             plot_outdir, xlim, title, prefix)
 
 def generate(configs, stations, domain_groups, time_groups):
-    total_plots = len(tags)*len(configs)*len(stations) * len(domain_groups) * len(time_groups)
+    total_plots = len(tags)*len(stations) * len(domain_groups) * len(time_groups)
     plot_idx = 1
     for tag in tags:
-        for cfg in configs:
-            for station in stations:
-                for domain_group in domain_groups:
-                    for (start_time, end_time) in time_groups:
-                        print(f"Plotting ({plot_idx}/{total_plots}) {station.name} {'-'.join(domain_group)} {start_time} - {end_time}")
-                        create_plots(start_time, end_time, tag, cfg, domain_group, station)
-                        plot_idx = plot_idx + 1
+        for station in stations:
+            for domain_group in domain_groups:
+                for (start_time, end_time) in time_groups:
+                    print(f"Plotting ({plot_idx}/{total_plots}) {station.name} {'-'.join(domain_group)} {start_time} - {end_time}")
+                    create_plots(start_time, end_time, tag, configs, domain_group, station)
+                    plot_idx = plot_idx + 1
+
+if __name__ == "__main__":
+    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)

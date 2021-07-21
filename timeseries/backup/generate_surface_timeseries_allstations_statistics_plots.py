@@ -206,14 +206,16 @@ def create_plots(start_date, end_date, tag, cfg, domain_group, stations, window)
 
 
             series = {}
-            errors = {}
+
             for station in stations:
                 for ds_label in dataset_labels:
                     point_label = f'{ds_label}_{station.wmoid}'
                     if not ds_label.startswith("surface obs"):
                         series[station.wmoid] = metrics_values[point_label][draw_param]
                         if metrics_name == "Bias":
-                            errors[station.wmoid] = all_var2[point_label][draw_param]
+                            errors = all_var2[point_label][draw_param]
+                        else:
+                            errors= None
 
             prefix = f'surface_timeseries_{configs[cfg]}_{metrics_name}_{start_date.strftime("%Y%m%d%H")}_{domain_label}_{draw_param}_All Stations_{window_tag}'
 
@@ -248,6 +250,3 @@ def generate(configs, stations, domain_groups, time_groups):
                         print(f"Plotting ({plot_idx}/{total_plots}) {cfg} w{window}{domain_group[0]} {start_time} - {end_time}")
                         create_plots(start_time, end_time, tag, cfg, domain_group, stations, window)
                         plot_idx = plot_idx + 1
-
-if __name__ == "__main__":
-    generate(configs, timeseries.stations, timeseries.domain_groups, timeseries.time_groups)
