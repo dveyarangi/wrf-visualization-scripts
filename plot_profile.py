@@ -58,8 +58,9 @@ def plot_profile( line_profiles, scatter_profiles ,outdir, xlim, title="", prefi
     label1=LetterChanges(label)
     if outdir is not None:
         plt.savefig(f'{outdir}/{prefix}.png')
-    #plt.show()
+    plt.show()
     plt.close()
+
 
 def plot_time_series( ref_xs, line_series, outdir, ylim, title="", prefix=""):
     plt.subplots(figsize=(8, 5))
